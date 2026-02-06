@@ -1,40 +1,27 @@
-provider "aws" { region = var.region }
-
-data "aws_eks_cluster" "this" {
-  name = var.cluster_name
-}
-
-data "aws_eks_cluster_auth" "this" {
-  name = var.cluster_name
-}
-
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.this.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = data.aws_eks_cluster.this.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.this.token
+resource "kubernetes_namespace_v1" "platform" {
+  metadata {
+    name = "platform"
   }
-}
-
-resource "kubernetes_namespace" "platform" {
-  metadata { name = "platform" }
 }
 
 resource "helm_release" "argocd" {
   name       = "argocd"
-  namespace  = kubernetes_namespace.platform.metadata[0].name
+  namespace  = kubernetes_namespace_v1.platform.metadata[0].name
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   version    = "6.7.11"
 
-  set { name = "server.service.type", value = "ClusterIP" }
+  values = [
+    yamlencode({
+      server = {
+        service = {
+          type = "ClusterIP"
+        }
+      }
+    })
+  ]
 }
+
 
 # Root app: sync everything under argocd/ in the GitOps repo
 resource "kubernetes_manifest" "root_app" {
@@ -43,7 +30,7 @@ resource "kubernetes_manifest" "root_app" {
     kind       = "Application"
     metadata = {
       name      = "ibank-root"
-      namespace = kubernetes_namespace.platform.metadata[0].name
+      namespace = kubernetes_namespace_v1.platform.metadata[0].name
       finalizers = ["resources-finalizer.argocd.argoproj.io"]
     }
     spec = {
@@ -55,7 +42,7 @@ resource "kubernetes_manifest" "root_app" {
       }
       destination = {
         server    = "https://kubernetes.default.svc"
-        namespace = kubernetes_namespace.platform.metadata[0].name
+        namespace = kubernetes_namespace_v1.platform.metadata[0].name
       }
       syncPolicy = {
         automated = {

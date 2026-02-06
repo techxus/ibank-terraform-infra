@@ -1,8 +1,15 @@
-variable "region" { type = string, default = "us-east-1" }
-variable "cluster_name" { type = string, default = "ibank-eks-dev" }
+variable "region" {
+  type    = string
+  default = "us-east-1"
+}
+
+variable "cluster_name" {
+  type    = string
+  default = "ibank-eks-dev"
+}
 
 variable "allowed_api_cidrs" {
-  description = "CIDRs allowed to access EKS API endpoint (e.g., your IP /32)."
+  description = "CIDRs allowed to access EKS API endpoint (e.g. your IP /32)"
   type        = list(string)
 }
 
@@ -19,18 +26,18 @@ variable "api_hostname" {
 }
 
 variable "gitops_repo_url" {
-  description = "GitOps repo URL ArgoCD will sync from"
+  description = "GitOps repo URL"
   type        = string
   default     = "https://github.com/techxus/ibank-minikube-gitops.git"
 }
 
 variable "gitops_target_revision" {
-  type        = string
-  default     = "master"
+  type    = string
+  default = "master"
 }
 
 variable "gitops_root_path" {
-  description = "Path in the GitOps repo that contains the Argo manifests (root app syncs this folder)"
+  description = "Path in GitOps repo for Argo root app"
   type        = string
   default     = "argocd"
 }

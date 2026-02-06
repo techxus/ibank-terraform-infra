@@ -43,7 +43,7 @@ resource "aws_iam_role" "github_actions_terraform" {
           # Allow ANY workflow in this repo.
           # Later you can tighten this to only main branch.
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${local.github_org}/${local.github_repo}:*"
+            "token.actions.githubusercontent.com:sub" = "repo:${local.github_org}/${local.github_repo}:ref:refs/heads/master"
           }
         }
       }

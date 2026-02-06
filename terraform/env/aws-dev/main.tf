@@ -1,4 +1,6 @@
-provider "aws" { region = var.region }
+provider "aws" {
+  region = var.region
+}
 
 module "eks" {
   source            = "../../modules/eks-cluster"
@@ -6,6 +8,7 @@ module "eks" {
   cluster_name      = var.cluster_name
   allowed_api_cidrs = var.allowed_api_cidrs
 }
+
 
 # Route53 zone lookup
 data "aws_route53_zone" "public" {
@@ -48,6 +51,16 @@ module "alb_controller" {
 
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.oidc_provider_url
+
+  # these can stay for now even if not used; optional cleanup later
+  cluster_endpoint = module.eks.cluster_endpoint
+  cluster_ca_data  = module.eks.cluster_certificate_authority_data
+
+  providers = {
+    aws        = aws
+    kubernetes = kubernetes
+    helm       = helm
+  }
 }
 
 module "argocd" {
@@ -55,7 +68,19 @@ module "argocd" {
   cluster_name = module.eks.cluster_name
   region       = var.region
 
+  cluster_endpoint = module.eks.cluster_endpoint
+  cluster_ca_data  = module.eks.cluster_certificate_authority_data
+
   gitops_repo_url        = var.gitops_repo_url
   gitops_target_revision = var.gitops_target_revision
   gitops_root_path       = var.gitops_root_path
+
+  providers = {
+    aws        = aws
+    kubernetes = kubernetes
+    helm       = helm
+  }
 }
+
+
+

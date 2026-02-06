@@ -1,0 +1,30 @@
+name: infra-apply
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "terraform/**"
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Terraform init
+        working-directory: terraform/envs/aws-dev
+        run: terraform init
+
+      - name: Terraform apply
+        working-directory: terraform/envs/aws-dev
+        run: terraform apply -auto-approve

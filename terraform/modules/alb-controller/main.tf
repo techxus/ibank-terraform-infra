@@ -1,29 +1,7 @@
-provider "aws" { region = var.region }
-
-data "aws_eks_cluster" "this" {
-  name = var.cluster_name
-}
-
-data "aws_eks_cluster_auth" "this" {
-  name = var.cluster_name
-}
-
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.this.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = data.aws_eks_cluster.this.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.this.token
+resource "kubernetes_namespace_v1" "kube_system" {
+  metadata {
+    name = "kube-system"
   }
-}
-
-resource "kubernetes_namespace" "kube_system" {
-  metadata { name = "kube-system" }
 }
 
 resource "aws_iam_policy" "controller" {
@@ -59,7 +37,7 @@ resource "aws_iam_role_policy_attachment" "attach" {
   policy_arn = aws_iam_policy.controller.arn
 }
 
-resource "kubernetes_service_account" "sa" {
+resource "kubernetes_service_account_v1" "sa" {
   metadata {
     name      = "aws-load-balancer-controller"
     namespace = "kube-system"
@@ -79,10 +57,19 @@ resource "helm_release" "lbc" {
   chart      = "aws-load-balancer-controller"
   version    = "1.7.2"
 
-  set { name = "clusterName", value = var.cluster_name }
-  set { name = "serviceAccount.create", value = "false" }
-  set { name = "serviceAccount.name", value = kubernetes_service_account.sa.metadata[0].name }
-  set { name = "region", value = var.region }
+  values = [
+    yamlencode({
+      clusterName = var.cluster_name
+
+      region = var.region
+
+      serviceAccount = {
+        create = false
+        name   = kubernetes_service_account_v1.sa.metadata[0].name
+      }
+    })
+  ]
 
   depends_on = [aws_iam_role_policy_attachment.attach]
 }
+

@@ -1,0 +1,39 @@
+name: infra-plan
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials (OIDC)
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Terraform init
+        working-directory: terraform/envs/aws-dev
+        run: terraform init
+
+      - name: Terraform plan
+        working-directory: terraform/envs/aws-dev
+        run: terraform plan -no-color
+
+      - name: Show GitHub OIDC claims
+        run: |
+          echo "REPO: $GITHUB_REPOSITORY"
+          echo "REF: $GITHUB_REF"
+          echo "WORKFLOW: $GITHUB_WORKFLOW"
+
