@@ -61,6 +61,13 @@ jobs:
         working-directory: terraform/env/aws-dev
         run: terraform init -upgrade -reconfigure
 
+      - name: Prove state
+        working-directory: terraform/env/aws-dev
+        run: |
+          ls -la
+          test -f terraform.tfstate && echo "❌ local state in CI" || echo "✅ no local state file"
+          terraform state list | head
+
       - name: Select workspace
         working-directory: terraform/env/aws-dev
         run: terraform workspace select aws-dev || terraform workspace new aws-dev
