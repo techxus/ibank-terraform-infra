@@ -26,7 +26,6 @@ locals {
 
 resource "aws_iam_role" "github_actions_terraform" {
   name = "github-actions-ibank-infra"
-
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
