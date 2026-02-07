@@ -58,18 +58,45 @@ jobs:
           REGION=us-east-1
           RUNNER_IP="${{ steps.egress.outputs.ip }}/32"
 
+          echo "Runner IP: $RUNNER_IP"
+
+          # Wait for any in-progress EKS updates (EKS allows only one at a time)
+          for i in $(seq 1 60); do
+            STATUS=$(aws eks list-updates --name "$CLUSTER" --region "$REGION" \
+              --query 'updateIds[0]' --output text)
+
+            if [ "$STATUS" = "None" ] || [ -z "$STATUS" ]; then
+              echo "No updates found."
+              break
+            fi
+
+            STATE=$(aws eks describe-update --name "$CLUSTER" --region "$REGION" --update-id "$STATUS" \
+              --query 'update.status' --output text)
+
+            echo "Latest update: $STATUS status=$STATE"
+
+            if [ "$STATE" = "Successful" ]; then
+              break
+            fi
+            if [ "$STATE" = "Failed" ] || [ "$STATE" = "Cancelled" ]; then
+              echo "Cluster update $STATUS ended with status=$STATE"
+              break
+            fi
+
+            sleep 20
+          done
+
+          # Build new CIDR list
           CURRENT=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
             --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output text)
 
-          # output text is space-separated; append runner ip if missing
           if echo "$CURRENT" | tr '\t' ' ' | grep -q "$RUNNER_IP"; then
-            echo "Runner IP already allowed: $RUNNER_IP"
+            echo "Runner IP already allowed."
             NEW="$CURRENT"
           else
             NEW="$CURRENT $RUNNER_IP"
           fi
 
-          # convert to comma-separated
           NEW_CSV=$(echo "$NEW" | tr '\t' ' ' | xargs | tr ' ' ',')
 
           echo "Updating publicAccessCidrs to: $NEW_CSV"
@@ -78,8 +105,8 @@ jobs:
             --name "$CLUSTER" --region "$REGION" \
             --resources-vpc-config endpointPublicAccess=true,endpointPrivateAccess=true,publicAccessCidrs="$NEW_CSV"
 
-          # Wait until the update is applied
           aws eks wait cluster-active --name "$CLUSTER" --region "$REGION"
+      
 
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
