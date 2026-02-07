@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
 
       - name: Show OIDC claims
         run: |
@@ -34,6 +36,14 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
           aws-region: us-east-1
+
+      - name: AWS identity
+        run: aws sts get-caller-identity
+
+      - name: EKS auth sanity check
+        run: |
+          aws eks describe-cluster --name ibank-eks-dev --region us-east-1
+          aws eks get-token --cluster-name ibank-eks-dev --region us-east-1 | head
 
       - name: Runner egress IP
         id: egress
