@@ -61,6 +61,10 @@ jobs:
         working-directory: terraform/env/aws-dev
         run: terraform init -upgrade -reconfigure
 
+      - name: Select workspace
+        working-directory: terraform/env/aws-dev
+        run: terraform workspace select aws-dev || terraform workspace new aws-dev
+
       - name: Terraform Apply
         working-directory: terraform/env/aws-dev
         run: terraform apply -auto-approve
