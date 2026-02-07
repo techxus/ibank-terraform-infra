@@ -6,6 +6,10 @@ on:
       - "terraform/**"
       - ".github/workflows/infra-apply.yml"
 
+concurrency:
+  group: infra-apply-aws-dev
+  cancel-in-progress: false
+
 jobs:
   apply:
     runs-on: ubuntu-latest
