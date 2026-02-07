@@ -61,17 +61,19 @@ jobs:
         working-directory: terraform/env/aws-dev
         run: terraform init -upgrade -reconfigure
 
+      - name: Select workspace
+        working-directory: terraform/env/aws-dev
+        run: terraform workspace select default
+
       - name: Prove state
         working-directory: terraform/env/aws-dev
         run: |
           ls -la
           test -f terraform.tfstate && echo "❌ local state in CI" || echo "✅ no local state file"
-          terraform state list | head
-
-      - name: Select workspace
-        working-directory: terraform/env/aws-dev
-        run: terraform workspace select aws-dev || terraform workspace new aws-dev
+          terraform state list > /tmp/state.txt
+          sed -n '1,40p' /tmp/state.txt
 
       - name: Terraform Apply
         working-directory: terraform/env/aws-dev
         run: terraform apply -auto-approve
+
