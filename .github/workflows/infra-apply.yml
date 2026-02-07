@@ -73,6 +73,30 @@ jobs:
           terraform state list > /tmp/state.txt
           sed -n '1,40p' /tmp/state.txt
 
+      - name: Ensure EKS access resources are in state (import if missing)
+        working-directory: terraform/env/aws-dev
+        run: |
+          set -euo pipefail
+      
+          # Access entry already exists in AWS (you listed it earlier)
+          PRINCIPAL_ARN="arn:aws:iam::121897425968:user/techxus-admin"
+          CLUSTER="ibank-eks-dev"
+          ADMIN_POLICY="arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+      
+          # Import access entry if Terraform state doesn't have it
+          if ! terraform state list | grep -q 'module.eks.module.eks.aws_eks_access_entry.this\["cluster_creator"\]'; then
+            terraform import \
+              'module.eks.module.eks.aws_eks_access_entry.this["cluster_creator"]' \
+              "${CLUSTER}:${PRINCIPAL_ARN}"
+          fi
+      
+          # Import policy association if Terraform state doesn't have it
+          if ! terraform state list | grep -q 'module.eks.module.eks.aws_eks_access_policy_association.this\["cluster_creator_admin"\]'; then
+            terraform import \
+              'module.eks.module.eks.aws_eks_access_policy_association.this["cluster_creator_admin"]' \
+              "${CLUSTER}#${PRINCIPAL_ARN}#${ADMIN_POLICY}"
+          fi
+
       - name: Terraform Apply
         working-directory: terraform/env/aws-dev
         run: terraform apply -auto-approve
