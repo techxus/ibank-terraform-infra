@@ -35,30 +35,27 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Allow GitHub runner IPv4 ranges to reach EKS (dev)
+      - name: Runner egress IP
+        id: egress
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq
+          echo "ip=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
+          echo "Runner egress IP: $(curl -s https://checkip.amazonaws.com)"
 
+      - name: Allow runner IP to reach EKS (dev)
+        run: |
           CLUSTER=ibank-eks-dev
           REGION=us-east-1
+          RUNNER_IP="${{ steps.egress.outputs.ip }}/32"
 
-          # current allowlist (space-separated)
-          CURRENT=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
-            --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output text)
+          # keep your existing allowlist and add runner /32 (dedupe)
+          CURRENT_JSON=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
+            --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output json)
 
-          # GitHub Actions egress ranges (IPv4 only)
-          ACTIONS_V4=$(curl -s https://api.github.com/meta \
-            | jq -r '.actions[] | select(test(":")|not)')
-
-          tmp=$(mktemp)
-          {
-            for c in $CURRENT; do echo "$c"; done
-            for c in $ACTIONS_V4; do echo "$c"; done
-          } | sort -u > "$tmp"
+          NEW_JSON=$(echo "$CURRENT_JSON" \
+            | jq --arg cidr "$RUNNER_IP" '(. + [$cidr]) | unique')
 
           aws eks update-cluster-config --name "$CLUSTER" --region "$REGION" \
-            --resources-vpc-config "publicAccessCidrs=$(jq -R -s -c 'split("\n")[:-1]' "$tmp")"
+            --resources-vpc-config "publicAccessCidrs=$NEW_JSON"
 
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
