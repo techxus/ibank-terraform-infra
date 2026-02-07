@@ -1,9 +1,3 @@
-resource "kubernetes_namespace_v1" "kube_system" {
-  metadata {
-    name = "kube-system"
-  }
-}
-
 resource "aws_iam_policy" "controller" {
   name   = "${var.cluster_name}-AWSLoadBalancerControllerIAMPolicy"
   policy = file("${path.module}/iam_policy.json")
