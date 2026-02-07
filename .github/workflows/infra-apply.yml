@@ -24,6 +24,11 @@ jobs:
         with:
           terraform_version: 1.6.6
 
+      - name: Select workspace
+        working-directory: terraform/env/aws-dev
+        run: |
+          terraform workspace select aws-dev || terraform workspace new aws-dev
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
@@ -59,7 +64,7 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
-        run: terraform init -upgrade
+        run: terraform init -upgrade -reconfigure
 
       - name: Terraform Apply
         working-directory: terraform/env/aws-dev
