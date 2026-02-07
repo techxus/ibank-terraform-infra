@@ -1,7 +1,7 @@
 name: infra-apply
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
     paths:
       - "terraform/**"
       - ".github/workflows/infra-apply.yml"
@@ -19,22 +19,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
-
-      - name: Show OIDC claims
-        run: |
-          echo "ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL"
-          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN is set? $([[ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]] && echo yes || echo no)"
-          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r '.value' > token.jwt
-          python3 - <<'PY'
-          import base64, json
-          t=open("token.jwt").read().split(".")[1]
-          t += "=" * (-len(t) % 4)
-          print(json.dumps(json.loads(base64.urlsafe_b64decode(t)), indent=2))
-          PY
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -44,47 +32,34 @@ jobs:
       - name: AWS identity
         run: aws sts get-caller-identity
 
-      - name: EKS auth sanity check
-        run: |
-          aws eks describe-cluster --name ibank-eks-dev --region us-east-1
-          aws eks get-token --cluster-name ibank-eks-dev --region us-east-1 | head
-
       - name: Runner egress IP
         id: egress
-        run: |
-          echo "ip=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
-          echo "Runner egress IP: $(curl -s https://checkip.amazonaws.com)"
+        run: echo "ip=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
 
+      # optional (fragile) — keep only if you insist on github-hosted runners
       - name: Allow runner IP to reach EKS (dev)
         run: |
           set -euo pipefail
           CLUSTER=ibank-eks-dev
           REGION=us-east-1
           RUNNER_IP="${{ steps.egress.outputs.ip }}/32"
-
-          # wait for cluster to be active (no update in progress)
           aws eks wait cluster-active --name "$CLUSTER" --region "$REGION"
-
           CURRENT=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
             --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output text)
-
-          if echo "$CURRENT" | tr '\t' ' ' | grep -q "$RUNNER_IP"; then
-            echo "Runner IP already allowed."
-            exit 0
-          fi
-
+          if echo "$CURRENT" | tr '\t' ' ' | grep -q "$RUNNER_IP"; then exit 0; fi
           NEW_CSV=$(echo "$CURRENT $RUNNER_IP" | tr '\t' ' ' | xargs | tr ' ' ',')
-          echo "Updating publicAccessCidrs to: $NEW_CSV"
-
           aws eks update-cluster-config \
             --name "$CLUSTER" --region "$REGION" \
             --resources-vpc-config endpointPublicAccess=true,endpointPrivateAccess=true,publicAccessCidrs="$NEW_CSV"
+          aws eks wait cluster-active --name "$CLUSTER" --region "$REGION"
 
-          aws eks wait cluster-active --name "$CLUSTER" --region "$REGION"      
+      - name: Probe EKS API
+        run: |
+          curl -vk --max-time 8 https://9A1C1313D848FDC62201DCB75EC39225.gr7.us-east-1.eks.amazonaws.com/healthz || true
 
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
-        run: terraform init
+        run: terraform init -upgrade
 
       - name: Terraform Apply
         working-directory: terraform/env/aws-dev
