@@ -53,19 +53,33 @@ jobs:
 
       - name: Allow runner IP to reach EKS (dev)
         run: |
+          set -euo pipefail
           CLUSTER=ibank-eks-dev
           REGION=us-east-1
           RUNNER_IP="${{ steps.egress.outputs.ip }}/32"
 
-          # keep your existing allowlist and add runner /32 (dedupe)
-          CURRENT_JSON=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
-            --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output json)
+          CURRENT=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
+            --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output text)
 
-          NEW_JSON=$(echo "$CURRENT_JSON" \
-            | jq --arg cidr "$RUNNER_IP" '(. + [$cidr]) | unique')
+          # output text is space-separated; append runner ip if missing
+          if echo "$CURRENT" | tr '\t' ' ' | grep -q "$RUNNER_IP"; then
+            echo "Runner IP already allowed: $RUNNER_IP"
+            NEW="$CURRENT"
+          else
+            NEW="$CURRENT $RUNNER_IP"
+          fi
 
-          aws eks update-cluster-config --name "$CLUSTER" --region "$REGION" \
-            --resources-vpc-config "publicAccessCidrs=$NEW_JSON"
+          # convert to comma-separated
+          NEW_CSV=$(echo "$NEW" | tr '\t' ' ' | xargs | tr ' ' ',')
+
+          echo "Updating publicAccessCidrs to: $NEW_CSV"
+
+          aws eks update-cluster-config \
+            --name "$CLUSTER" --region "$REGION" \
+            --resources-vpc-config endpointPublicAccess=true,endpointPrivateAccess=true,publicAccessCidrs="$NEW_CSV"
+
+          # Wait until the update is applied
+          aws eks wait cluster-active --name "$CLUSTER" --region "$REGION"
 
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
