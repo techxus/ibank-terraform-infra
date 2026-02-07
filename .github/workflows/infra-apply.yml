@@ -36,9 +36,9 @@ jobs:
           aws-region: us-east-1
 
       - name: Terraform Init
-        working-directory: terraform/envs/aws-dev
+        working-directory: terraform/env/aws-dev
         run: terraform init
 
       - name: Terraform Apply
-        working-directory: terraform/envs/aws-dev
+        working-directory: terraform/env/aws-dev
         run: terraform apply -auto-approve
