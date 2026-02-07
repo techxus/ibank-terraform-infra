@@ -4,6 +4,7 @@ on:
     branches: [ "master" ]
     paths:
       - "terraform/**"
+      - ".github/workflows/infra-apply.yml"
 
 jobs:
   apply:

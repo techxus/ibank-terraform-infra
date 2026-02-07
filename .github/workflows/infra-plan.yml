@@ -4,6 +4,7 @@ on:
     branches: [ "master" ]
     paths:
       - "terraform/**"
+      - ".github/workflows/infra-plan.yml"
 jobs:
   plan:
     runs-on: ubuntu-latest
