@@ -35,6 +35,27 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
+      - name: Allow GitHub runner IPs to reach EKS (dev)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+          CLUSTER=ibank-eks-dev
+          REGION=us-east-1
+
+          CURRENT=$(aws eks describe-cluster --name "$CLUSTER" --region "$REGION" \
+            --query 'cluster.resourcesVpcConfig.publicAccessCidrs' --output text)
+
+          ACTIONS_CIDRS=$(curl -s https://api.github.com/meta | jq -r '.actions[]')
+
+          tmp=$(mktemp)
+          {
+            for c in $CURRENT; do echo "$c"; done
+            for c in $ACTIONS_CIDRS; do echo "$c"; done
+          } | sort -u > "$tmp"
+
+          aws eks update-cluster-config --name "$CLUSTER" --region "$REGION" \
+            --resources-vpc-config "publicAccessCidrs=$(jq -R -s -c 'split("\n")[:-1]' "$tmp")"
+
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
         run: terraform init
