@@ -1,7 +1,7 @@
 name: infra-apply
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
     paths:
       - "terraform/**"
 
@@ -21,10 +21,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Terraform init
+      - name: Terraform Init
         working-directory: terraform/envs/aws-dev
         run: terraform init
 
-      - name: Terraform apply
+      - name: Terraform Apply
         working-directory: terraform/envs/aws-dev
         run: terraform apply -auto-approve
