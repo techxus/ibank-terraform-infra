@@ -1,3 +1,6 @@
+############################################
+# IRSA assume role policy for the controller
+############################################
 data "aws_iam_policy_document" "assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -21,11 +24,30 @@ resource "aws_iam_role" "controller" {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
-resource "aws_iam_role_policy_attachment" "alb_controller_attach" {
-  role       = "ibank-eks-dev-alb-controller"
-  policy_arn = "arn:aws:iam::121897425968:policy/ibank-eks-dev-AWSLoadBalancerControllerIAMPolicy"
+############################################
+# Download the official policy and create it
+############################################
+data "http" "lbc_iam_policy" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.9.0/docs/install/iam_policy.json"
 }
 
+resource "aws_iam_policy" "controller" {
+  name   = "${var.cluster_name}-AWSLoadBalancerControllerIAMPolicy"
+  policy = data.http.lbc_iam_policy.response_body
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "alb_controller_attach" {
+  role       = aws_iam_role.controller.name
+  policy_arn = aws_iam_policy.controller.arn
+}
+
+############################################
+# ServiceAccount annotated with IRSA role
+############################################
 resource "kubernetes_service_account_v1" "sa" {
   metadata {
     name      = "aws-load-balancer-controller"
@@ -39,6 +61,9 @@ resource "kubernetes_service_account_v1" "sa" {
   }
 }
 
+############################################
+# Helm install (waits for IAM + SA)
+############################################
 resource "helm_release" "lbc" {
   name       = "aws-load-balancer-controller"
   namespace  = "kube-system"
@@ -49,9 +74,7 @@ resource "helm_release" "lbc" {
   values = [
     yamlencode({
       clusterName = var.cluster_name
-
-      region = var.region
-
+      region      = var.region
       serviceAccount = {
         create = false
         name   = kubernetes_service_account_v1.sa.metadata[0].name
@@ -59,5 +82,8 @@ resource "helm_release" "lbc" {
     })
   ]
 
+  depends_on = [
+    aws_iam_role_policy_attachment.alb_controller_attach,
+    kubernetes_service_account_v1.sa
+  ]
 }
-
