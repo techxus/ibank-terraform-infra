@@ -1,8 +1,3 @@
-resource "aws_iam_policy" "controller" {
-  name   = "${var.cluster_name}-AWSLoadBalancerControllerIAMPolicy"
-  policy = file("${path.module}/iam_policy.json")
-}
-
 data "aws_iam_policy_document" "assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -26,9 +21,9 @@ resource "aws_iam_role" "controller" {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
-resource "aws_iam_role_policy_attachment" "attach" {
-  role       = aws_iam_role.controller.name
-  policy_arn = aws_iam_policy.controller.arn
+resource "aws_iam_role_policy_attachment" "alb_controller_attach" {
+  role       = "ibank-eks-dev-alb-controller"
+  policy_arn = "arn:aws:iam::121897425968:policy/ibank-eks-dev-AWSLoadBalancerControllerIAMPolicy"
 }
 
 resource "kubernetes_service_account_v1" "sa" {
@@ -64,6 +59,5 @@ resource "helm_release" "lbc" {
     })
   ]
 
-  depends_on = [aws_iam_role_policy_attachment.attach]
 }
 
