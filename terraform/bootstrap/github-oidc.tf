@@ -21,7 +21,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 # IMPORTANT: set your GitHub org/repo here
 locals {
   github_org  = "techxus"
-  github_repo = "ibank-infra"
+  github_repo = "ibank-terraform-infra"
 }
 
 resource "aws_iam_role" "github_actions_terraform" {
@@ -40,12 +40,7 @@ resource "aws_iam_role" "github_actions_terraform" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = [
-              "repo:${local.github_org}/${local.github_repo}:ref:refs/heads/*",
-              "repo:${local.github_org}/${local.github_repo}:pull_request",
-              "repo:${local.github_org}/${local.github_repo}:ref:refs/tags/*",
-              "repo:${local.github_org}/${local.github_repo}:environment:*"
-            ]
+            "token.actions.githubusercontent.com:sub" = "repo:techxus/ibank-terraform-infra:ref:refs/heads/master"
           }
         }
       }
