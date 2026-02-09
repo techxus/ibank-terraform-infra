@@ -24,10 +24,18 @@ jobs:
         with:
           terraform_version: 1.6.6
 
+      - name: Print GitHub OIDC subject (sub)
+        shell: bash
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL"
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN is set? ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+yes}"
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
           aws-region: us-east-1
+        env:
+          ACTIONS_STEP_DEBUG: "true"
 
       - name: AWS identity
         run: aws sts get-caller-identity
