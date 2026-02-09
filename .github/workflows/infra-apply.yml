@@ -47,6 +47,10 @@ jobs:
           echo "$PAYLOAD" | jq || echo "$PAYLOAD"
           exit 0
 
+      - name: Show role ARN being assumed
+        run: |
+          echo "ROLE_TO_ASSUME=${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}"
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
