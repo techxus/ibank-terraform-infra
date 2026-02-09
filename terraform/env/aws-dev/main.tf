@@ -82,5 +82,13 @@ module "argocd" {
   }
 }
 
+module "secrets_store_csi" {
+  source = "../../modules/secrets-store-csi"
+
+  providers = {
+    helm = helm
+  }
+}
+
 
 
