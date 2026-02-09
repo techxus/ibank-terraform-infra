@@ -42,7 +42,19 @@ resource "aws_iam_role" "github_actions_terraform" {
           # Allow ANY workflow in this repo.
           # Later you can tighten this to only main branch.
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${local.github_org}/${local.github_repo}:ref:refs/heads/master"
+            "token.actions.githubusercontent.com:sub" = [
+              # branch builds (master)
+              "repo:${local.github_org}/${local.github_repo}:ref:refs/heads/master",
+
+              # PR workflows (if you added pull_request recently)
+              "repo:${local.github_org}/${local.github_repo}:pull_request",
+
+              # tags/releases (if you started tagging)
+              "repo:${local.github_org}/${local.github_repo}:ref:refs/tags/*",
+
+              # environments (if you added environment: aws-dev, etc)
+              "repo:${local.github_org}/${local.github_repo}:environment:*"
+            ]
           }
         }
       }
