@@ -60,11 +60,13 @@ module "irsa_db_secrets_sa" {
   oidc_provider_url    = local.effective_oidc_provider_url
   oidc_provider_arn    = local.effective_oidc_provider_arn
 
-  # NEW names (avoid 409 collisions)
+  # stable names (no collisions)
   role_name            = "${var.cluster_name}-db-secrets-sa"
   policy_name          = "${var.cluster_name}-db-secrets-sa-secrets-read"
 
+  # wildcard for the secret name (works even with the random suffix)
   secret_arns          = [local.rds_secret_arn]
 }
+
 
 
