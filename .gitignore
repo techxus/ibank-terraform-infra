@@ -1,3 +1,4 @@
 terraform/bootstrap/.terraform/providers/
 terraform/bootstrap/.terraform.lock.hcl
 
+/terraform/env/aws-dev/.terraform/terraform.tfstate
