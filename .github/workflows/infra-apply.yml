@@ -86,6 +86,17 @@ jobs:
         run: |
           curl -vk --max-time 8 https://9A1C1313D848FDC62201DCB75EC39225.gr7.us-east-1.eks.amazonaws.com/healthz || true
 
+      - name: Guardrail - fail if old db-secrets-reader role name exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Searching for the old role name in terraform sources..."
+          if grep -R --line-number "db-secrets-reader" terraform/; then
+            echo "❌ Found 'db-secrets-reader' in terraform/ (CI must not apply old role names)."
+            exit 1
+          fi
+          echo "✅ No 'db-secrets-reader' found in terraform/"
+
       - name: Terraform Init
         working-directory: terraform/env/aws-dev
         run: terraform init -upgrade -reconfigure
@@ -125,6 +136,18 @@ jobs:
               'module.eks.module.eks.aws_eks_access_policy_association.this["cluster_creator_admin"]' \
               "${CLUSTER}#${PRINCIPAL_ARN}#${ADMIN_POLICY}"
           fi
+
+      - name: Prove IRSA role_name being used (db-secrets-sa)
+        working-directory: terraform/env/aws-dev
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "---- grep in module source for irsa_db_secrets_sa role_name ----"
+          # this assumes your env points to ../../modules/eks-cluster
+          grep -R --line-number 'module "irsa_db_secrets_sa"' -n ../../modules/eks-cluster || true
+          grep -R --line-number 'role_name' -n ../../modules/eks-cluster | sed -n '1,120p'
+          echo "---- terraform plan snippet for irsa_db_secrets_sa ----"
+          terraform plan -no-color | sed -n '1,200p' || true
 
       - name: Terraform Apply
         working-directory: terraform/env/aws-dev
