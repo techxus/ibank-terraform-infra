@@ -5,6 +5,7 @@ locals {
 
   # same wildcard you used (fine for now)
   rds_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:ibank-eks-dev/rds/postgres-*"
+  redis_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/redis/auth-*"
 
   effective_oidc_provider_url = coalesce(
     var.oidc_provider_url,
@@ -65,7 +66,10 @@ module "irsa_db_secrets_sa" {
   policy_name          = "${var.cluster_name}-db-secrets-sa-secrets-read"
 
   # wildcard for the secret name (works even with the random suffix)
-  secret_arns          = [local.rds_secret_arn]
+  secret_arns = [
+    local.rds_secret_arn,
+    local.redis_secret_arn
+  ]
 }
 
 
