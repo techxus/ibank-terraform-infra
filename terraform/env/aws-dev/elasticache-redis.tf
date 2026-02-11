@@ -21,24 +21,34 @@ resource "aws_secretsmanager_secret_version" "redis" {
   })
 }
 
-data "aws_vpc" "eks" {
-  id = module.eks.vpc_id
+# Lookup the db-access instance so we can allow SSM-tunneled access to Redis
+# Instance tag Name must be: "${var.cluster_name}-db-access" (your example: ibank-eks-dev-db-access)
+data "aws_instance" "db_access" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.cluster_name}-db-access"]
+  }
+
+  filter {
+    name   = "instance-state-name"
+    values = ["running"]
+  }
 }
 
 resource "aws_security_group" "redis" {
   name        = "${var.cluster_name}-redis"
-  description = "Redis access from EKS nodes"
+  description = "Redis access from EKS nodes + db-access (SSM tunnel)"
   vpc_id      = module.eks.vpc_id
 
   ingress {
-    description     = "From EKS nodes + db-access (SSM tunnel)"
+    description     = "From EKS nodes + db-access SGs"
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
-    security_groups = [
-      module.eks.node_security_group_id,
-      aws_instance.db_access.vpc_security_group_ids[0]
-    ]
+    security_groups = concat(
+      [module.eks.node_security_group_id],
+      data.aws_instance.db_access.vpc_security_group_ids
+    )
   }
 
   egress {
@@ -55,15 +65,16 @@ resource "aws_elasticache_subnet_group" "redis" {
 }
 
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id       = "${var.cluster_name}-redis"
-  description                = "Redis for ${var.cluster_name}"
-  engine                     = "redis"
-  engine_version             = "7.1" # ok for ElastiCache; Valkey works too (same client)
-  node_type                  = "cache.t4g.small"
-  port                       = 6379
+  replication_group_id = "${var.cluster_name}-redis"
+  description          = "Redis for ${var.cluster_name}"
 
-  subnet_group_name          = aws_elasticache_subnet_group.redis.name
-  security_group_ids         = [aws_security_group.redis.id]
+  engine         = "redis"
+  engine_version = "7.1"
+  node_type      = "cache.t4g.small"
+  port           = 6379
+
+  subnet_group_name  = aws_elasticache_subnet_group.redis.name
+  security_group_ids = [aws_security_group.redis.id]
 
   transit_encryption_enabled = true
   at_rest_encryption_enabled = true
@@ -72,5 +83,5 @@ resource "aws_elasticache_replication_group" "redis" {
   multi_az_enabled           = true
   automatic_failover_enabled = true
 
-  num_cache_clusters         = 2
+  num_cache_clusters = 2
 }
