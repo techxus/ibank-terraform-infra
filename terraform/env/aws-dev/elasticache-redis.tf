@@ -47,7 +47,7 @@ resource "aws_security_group" "redis" {
     protocol        = "tcp"
     security_groups = concat(
       [module.eks.node_security_group_id],
-      data.aws_instance.db_access.vpc_security_group_ids
+      tolist(data.aws_instance.db_access.vpc_security_group_ids)
     )
   }
 
