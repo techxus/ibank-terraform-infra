@@ -1,11 +1,6 @@
 ############################################
 # Allow private EC2 → AWS SSM via VPC endpoints
 ############################################
-data "aws_vpc" "eks" {
-  id = module.eks.vpc_id
-}
-
-
 resource "aws_security_group" "ssm_endpoints" {
   name        = "${var.cluster_name}-ssm-endpoints"
   description = "SSM interface endpoints"
