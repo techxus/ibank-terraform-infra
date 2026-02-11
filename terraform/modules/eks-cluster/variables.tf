@@ -14,4 +14,7 @@ variable "oidc_provider_url" {
   default     = null
 }
 
+variable "redis_secret_arn" {
+  type = string
+}
 
