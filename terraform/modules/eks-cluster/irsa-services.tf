@@ -68,7 +68,7 @@ module "irsa_db_secrets_sa" {
   # wildcard for the secret name (works even with the random suffix)
   secret_arns = [
     local.rds_secret_arn,
-    var.redis_secret_arn
+    local.redis_secret_arn
   ]
 }
 
