@@ -31,11 +31,14 @@ resource "aws_security_group" "redis" {
   vpc_id      = module.eks.vpc_id
 
   ingress {
-    description     = "From EKS nodes"
+    description     = "From EKS nodes + db-access (SSM tunnel)"
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
-    security_groups = [module.eks.node_security_group_id]
+    security_groups = [
+      module.eks.node_security_group_id,
+      aws_instance.db_access.vpc_security_group_ids[0]
+    ]
   }
 
   egress {
