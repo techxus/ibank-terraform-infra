@@ -21,6 +21,10 @@ resource "aws_secretsmanager_secret_version" "redis" {
   })
 }
 
+data "aws_vpc" "eks" {
+  id = module.eks.vpc_id
+}
+
 resource "aws_security_group" "redis" {
   name        = "${var.cluster_name}-redis"
   description = "Redis access from EKS nodes"
