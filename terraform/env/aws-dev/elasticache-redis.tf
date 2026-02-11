@@ -57,6 +57,10 @@ resource "aws_security_group" "redis" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_elasticache_subnet_group" "redis" {
