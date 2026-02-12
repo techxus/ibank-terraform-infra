@@ -12,12 +12,12 @@ resource "aws_secretsmanager_secret" "redis" {
 }
 
 resource "aws_secretsmanager_secret_version" "redis" {
-  secret_id     = aws_secretsmanager_secret.redis.id
+  secret_id = aws_secretsmanager_secret.redis.id
   secret_string = jsonencode({
     host      = aws_elasticache_replication_group.redis.primary_endpoint_address
-    port      = 6379
+    port      = "6379" # MUST be a string for Secrets Store CSI + JMESPath
     authToken = random_password.redis_auth_token.result
-    tls       = true
+    tls       = "true" # optional, but keeping everything as string avoids surprises
   })
 }
 
