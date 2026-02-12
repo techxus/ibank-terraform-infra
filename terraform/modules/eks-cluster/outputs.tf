@@ -52,3 +52,23 @@ output "cluster_security_group_id" {
   value = module.eks.cluster_security_group_id
 }
 
+output "msk_bootstrap_brokers" {
+  value = aws_msk_cluster.kafka.bootstrap_brokers_sasl_scram
+}
+
+output "msk_app_secret_arn" {
+  value = aws_secretsmanager_secret.msk_app.arn
+}
+
+output "msk_app_secret_name" {
+  value = aws_secretsmanager_secret.msk_app.name
+}
+
+output "msk_bootstrap_brokers_tls" {
+  value = aws_msk_cluster.kafka.bootstrap_brokers_tls
+}
+
+output "msk_cluster_arn" {
+  value = aws_msk_cluster.kafka.arn
+}
+

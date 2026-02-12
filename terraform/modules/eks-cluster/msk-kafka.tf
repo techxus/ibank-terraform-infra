@@ -1,0 +1,111 @@
+############################################
+# MSK (Kafka) + SCRAM secret + SG
+############################################
+
+resource "random_password" "msk_scram_password" {
+  length  = 32
+  special = false
+}
+
+# MSK SG: allow EKS nodes to reach brokers (TLS 9094)
+resource "aws_security_group" "msk" {
+  name        = "${var.cluster_name}-msk"
+  description = "MSK access from EKS nodes"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description     = "Kafka TLS from EKS nodes"
+    from_port       = 9094
+    to_port         = 9094
+    protocol        = "tcp"
+    security_groups = [module.eks.node_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Secret that MSK will use for SCRAM user
+resource "aws_secretsmanager_secret" "msk_scram" {
+  name                    = "${var.cluster_name}/msk/scram"
+  description             = "MSK SCRAM credentials for ${var.cluster_name}"
+  recovery_window_in_days = 7
+
+  tags = {
+    Project = var.cluster_name
+    Env     = "aws-dev"
+    Managed = "terraform"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "msk_scram" {
+  secret_id = aws_secretsmanager_secret.msk_scram.id
+  secret_string = jsonencode({
+    username = "appuser"
+    password = random_password.msk_scram_password.result
+  })
+}
+
+# MSK cluster
+resource "aws_msk_cluster" "kafka" {
+  cluster_name           = "${var.cluster_name}-msk"
+  kafka_version          = "3.6.0"
+  number_of_broker_nodes = 3
+
+  broker_node_group_info {
+    instance_type  = "kafka.t3.small"
+    client_subnets = module.vpc.private_subnets
+    security_groups = [
+      aws_security_group.msk.id
+    ]
+
+    storage_info {
+      ebs_storage_info {
+        volume_size = 100
+      }
+    }
+  }
+
+  encryption_info {
+    encryption_in_transit {
+      client_broker = "TLS"   # forces TLS port (9094)
+      in_cluster    = true
+    }
+  }
+
+  client_authentication {
+    sasl {
+      scram = true
+    }
+  }
+
+  # optional but recommended in real envs
+  enhanced_monitoring = "PER_TOPIC_PER_BROKER"
+}
+
+# Associate SCRAM secret with MSK
+resource "aws_msk_scram_secret_association" "kafka" {
+  cluster_arn     = aws_msk_cluster.kafka.arn
+  secret_arn_list = [aws_secretsmanager_secret.msk_scram.arn]
+}
+
+# Store runtime connection info in a separate app secret (like you did for redis)
+resource "aws_secretsmanager_secret" "msk_app" {
+  name        = "${var.cluster_name}/msk/app"
+  description = "MSK bootstrap brokers + config for apps"
+}
+
+resource "aws_secretsmanager_secret_version" "msk_app" {
+  secret_id = aws_secretsmanager_secret.msk_app.id
+  secret_string = jsonencode({
+    bootstrapBrokers = aws_msk_cluster.kafka.bootstrap_brokers_sasl_scram
+    securityProtocol = "SASL_SSL"
+    saslMechanism    = "SCRAM-SHA-512"
+    username         = "appuser"
+    password         = random_password.msk_scram_password.result
+  })
+}
