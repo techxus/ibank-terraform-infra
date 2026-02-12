@@ -7,7 +7,7 @@ module "eks" {
   region            = var.region
   cluster_name      = var.cluster_name
   allowed_api_cidrs = var.allowed_api_cidrs
-  redis_secret_arn = "arn:aws:secretsmanager:us-east-1:121897425968:secret:ibank-eks-dev/redis/auth-k74NT7"
+  redis_secret_arn = aws_secretsmanager_secret.redis.arn
 }
 
 

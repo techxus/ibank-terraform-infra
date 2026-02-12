@@ -52,11 +52,3 @@ output "cluster_security_group_id" {
   value = module.eks.cluster_security_group_id
 }
 
-output "notification_irsa_role_arn" {
-  value = module.irsa_notification_service.role_arn
-}
-
-output "user_irsa_role_arn" {
-  value = module.irsa_user_service.role_arn
-}
-

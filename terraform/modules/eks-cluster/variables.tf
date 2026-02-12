@@ -16,6 +16,7 @@ variable "oidc_provider_url" {
 
 variable "redis_secret_arn" {
   type        = string
-  description = "Secrets Manager ARN for Redis auth secret"
+  description = "Redis secret ARN in AWS Secrets Manager (created in root module)"
+  default     = ""
 }
 
