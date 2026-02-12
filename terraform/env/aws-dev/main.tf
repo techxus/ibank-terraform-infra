@@ -7,7 +7,7 @@ module "eks" {
   region            = var.region
   cluster_name      = var.cluster_name
   allowed_api_cidrs = var.allowed_api_cidrs
-  redis_secret_arn  = aws_secretsmanager_secret.redis.arn
+  redis_secret_arn = aws_secretsmanager_secret.redis.arn
 }
 
 

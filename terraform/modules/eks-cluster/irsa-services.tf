@@ -65,10 +65,9 @@ module "irsa_db_secrets_sa" {
   role_name            = "${var.cluster_name}-db-secrets-sa"
   policy_name          = "${var.cluster_name}-db-secrets-sa-secrets-read"
 
-  # wildcard for the secret name (works even with the random suffix)
   secret_arns = [
     local.rds_secret_arn,
-    local.redis_secret_arn
+    var.redis_secret_arn
   ]
 }
 

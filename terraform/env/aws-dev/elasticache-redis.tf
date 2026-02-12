@@ -104,3 +104,7 @@ resource "aws_security_group_rule" "redis_egress_all" {
   description       = "Allow all egress"
 }
 
+output "redis_secret_arn" {
+  value = aws_secretsmanager_secret.redis.arn
+}
+
