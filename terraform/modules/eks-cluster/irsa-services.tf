@@ -32,6 +32,6 @@ module "irsa_db_secrets_sa" {
 
   secret_arns = [
     local.rds_secret_arn,
-    local.redis_secret_arn
+    "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/redis/auth-*"
   ]
 }
