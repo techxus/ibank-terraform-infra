@@ -15,7 +15,7 @@ variable "oidc_provider_url" {
 }
 
 variable "redis_secret_arn" {
-  type    = string
-  default = ""
+  type        = string
+  description = "Secrets Manager ARN for Redis auth secret"
 }
 

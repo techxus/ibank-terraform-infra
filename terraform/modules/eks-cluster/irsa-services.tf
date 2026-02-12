@@ -5,7 +5,6 @@ locals {
 
   # same wildcard you used (fine for now)
   rds_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:ibank-eks-dev/rds/postgres-*"
-  redis_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/redis/auth-*"
 
   effective_oidc_provider_url = coalesce(
     var.oidc_provider_url,
