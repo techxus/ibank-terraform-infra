@@ -31,7 +31,7 @@ module "irsa_db_secrets_sa" {
   policy_name          = "${var.cluster_name}-db-secrets-sa-secrets-read"
 
   secret_arns = [
-    local.rds_secret_arn,
-    "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/redis/auth-*"
+    "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:ibank-eks-dev/rds/postgres-*",
+    "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:ibank-eks-dev/redis/auth-*"
   ]
 }
