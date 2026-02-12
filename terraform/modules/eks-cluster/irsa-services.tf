@@ -2,7 +2,8 @@ data "aws_caller_identity" "current" {}
 
 locals {
   region = try(var.region, "us-east-1")
-  rds_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/rds/postgres-*"
+
+  rds_secret_arn   = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/rds/postgres-*"
   redis_secret_arn = var.redis_secret_arn
 
   effective_oidc_provider_url = coalesce(
@@ -31,7 +32,7 @@ module "irsa_db_secrets_sa" {
   policy_name          = "${var.cluster_name}-db-secrets-sa-secrets-read"
 
   secret_arns = [
-    "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:ibank-eks-dev/rds/postgres-*",
-    "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:ibank-eks-dev/redis/auth-*"
+    local.rds_secret_arn,
+    local.redis_secret_arn
   ]
 }
