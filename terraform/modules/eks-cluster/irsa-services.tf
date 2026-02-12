@@ -5,6 +5,7 @@ locals {
 
   rds_secret_arn   = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/rds/postgres-*"
   redis_secret_arn = var.redis_secret_arn
+  msk_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/msk/bootstrap-*"
 
   effective_oidc_provider_url = coalesce(
     var.oidc_provider_url,
@@ -33,6 +34,7 @@ module "irsa_db_secrets_sa" {
 
   secret_arns = [
     local.rds_secret_arn,
-    local.redis_secret_arn
+    local.redis_secret_arn,
+    local.msk_secret_arn
   ]
 }
