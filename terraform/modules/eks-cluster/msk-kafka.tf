@@ -21,16 +21,28 @@ resource "aws_kms_alias" "msk_scram" {
   target_key_id = aws_kms_key.msk_scram.key_id
 }
 
-# MSK SG: allow EKS nodes to reach brokers (TLS 9094)
+############################################
+# MSK Security Group
+# - 9094: TLS (non-SASL) client endpoint (optional)
+# - 9096: SASL/SCRAM client endpoint (REQUIRED for your current bootstrap brokers)
+############################################
 resource "aws_security_group" "msk" {
   name        = "${var.cluster_name}-msk"
   description = "MSK access from EKS nodes"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    description     = "Kafka TLS from EKS nodes"
+    description     = "Kafka TLS (9094) from EKS nodes"
     from_port       = 9094
     to_port         = 9094
+    protocol        = "tcp"
+    security_groups = [module.eks.node_security_group_id]
+  }
+
+  ingress {
+    description     = "Kafka SASL/SCRAM (9096) from EKS nodes"
+    from_port       = 9096
+    to_port         = 9096
     protocol        = "tcp"
     security_groups = [module.eks.node_security_group_id]
   }
@@ -96,7 +108,7 @@ resource "aws_msk_cluster" "kafka" {
 
   encryption_info {
     encryption_in_transit {
-      client_broker = "TLS"   # forces TLS port (9094)
+      client_broker = "TLS" # MSK uses TLS on client endpoints; SASL/SCRAM rides over TLS (9096)
       in_cluster    = true
     }
   }
@@ -130,10 +142,10 @@ resource "aws_secretsmanager_secret" "msk_app" {
 resource "aws_secretsmanager_secret_version" "msk_app" {
   secret_id = aws_secretsmanager_secret.msk_app.id
   secret_string = jsonencode({
-    bootstrapBrokers = aws_msk_cluster.kafka.bootstrap_brokers_sasl_scram
-    securityProtocol = "SASL_SSL"
-    saslMechanism    = "SCRAM-SHA-512"
-    username         = "appuser"
-    password         = random_password.msk_scram_password.result
+    bootstrapBrokers  = aws_msk_cluster.kafka.bootstrap_brokers_sasl_scram
+    securityProtocol  = "SASL_SSL"
+    saslMechanism     = "SCRAM-SHA-512"
+    username          = "appuser"
+    password          = random_password.msk_scram_password.result
   })
 }
