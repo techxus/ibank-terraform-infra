@@ -7,6 +7,20 @@ resource "random_password" "msk_scram_password" {
   special = false
 }
 
+############################################
+# KMS key for MSK SCRAM secrets (required by MSK)
+############################################
+resource "aws_kms_key" "msk_scram" {
+  description             = "CMK for MSK SCRAM secret encryption (${var.cluster_name})"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_alias" "msk_scram" {
+  name          = "alias/${var.cluster_name}-msk-scram"
+  target_key_id = aws_kms_key.msk_scram.key_id
+}
+
 # MSK SG: allow EKS nodes to reach brokers (TLS 9094)
 resource "aws_security_group" "msk" {
   name        = "${var.cluster_name}-msk"
@@ -29,11 +43,19 @@ resource "aws_security_group" "msk" {
   }
 }
 
+############################################
 # Secret that MSK will use for SCRAM user
+# MSK REQUIREMENTS:
+#  - Secret name must start with "AmazonMSK_"
+#  - Secret must be encrypted with a customer-managed KMS key (NOT default)
+############################################
 resource "aws_secretsmanager_secret" "msk_scram" {
-  name                    = "${var.cluster_name}/msk/scram"
+  name                    = "AmazonMSK_${var.cluster_name}_scram"
   description             = "MSK SCRAM credentials for ${var.cluster_name}"
   recovery_window_in_days = 7
+
+  # ✅ REQUIRED by MSK: use CMK (customer managed KMS key)
+  kms_key_id = aws_kms_key.msk_scram.arn
 
   tags = {
     Project = var.cluster_name
@@ -50,7 +72,9 @@ resource "aws_secretsmanager_secret_version" "msk_scram" {
   })
 }
 
+############################################
 # MSK cluster
+############################################
 resource "aws_msk_cluster" "kafka" {
   cluster_name           = "${var.cluster_name}-msk"
   kafka_version          = "3.6.0"
@@ -83,17 +107,21 @@ resource "aws_msk_cluster" "kafka" {
     }
   }
 
-  # optional but recommended in real envs
   enhanced_monitoring = "PER_TOPIC_PER_BROKER"
 }
 
+############################################
 # Associate SCRAM secret with MSK
+############################################
 resource "aws_msk_scram_secret_association" "kafka" {
   cluster_arn     = aws_msk_cluster.kafka.arn
   secret_arn_list = [aws_secretsmanager_secret.msk_scram.arn]
 }
 
-# Store runtime connection info in a separate app secret (like you did for redis)
+############################################
+# Store runtime connection info in a separate app secret
+# (this is what pods should read via CSI)
+############################################
 resource "aws_secretsmanager_secret" "msk_app" {
   name        = "${var.cluster_name}/msk/app"
   description = "MSK bootstrap brokers + config for apps"

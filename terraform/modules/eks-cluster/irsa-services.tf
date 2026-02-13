@@ -5,7 +5,9 @@ locals {
 
   rds_secret_arn   = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/rds/postgres-*"
   redis_secret_arn = var.redis_secret_arn
-  msk_secret_arn = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/msk/bootstrap-*"
+
+  # ✅ FIXED → use canonical MSK app secret
+  msk_secret_arn   = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${var.cluster_name}/msk/app-*"
 
   effective_oidc_provider_url = coalesce(
     var.oidc_provider_url,
