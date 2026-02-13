@@ -1,8 +1,7 @@
 name: infra-apply
 on:
   push:
-    branches:
-      - "release/**"
+    branches: ["master"]
     paths:
       - "terraform/**"
       - ".github/workflows/infra-apply.yml"
