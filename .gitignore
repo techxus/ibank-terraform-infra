@@ -1,6 +1,7 @@
-terraform/bootstrap/.terraform/providers/
-terraform/env/aws-dev/.terraform/modules/
-terraform/bootstrap/.terraform.lock.hcl
 
 ibank-terraform-infra.iml
-terraform/env/aws-dev/iam-policy.json
+
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
