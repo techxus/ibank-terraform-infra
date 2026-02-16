@@ -1,0 +1,104 @@
+{
+  "acm_cert_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:acm:us-east-1:121897425968:certificate/1eb377b0-2d0a-43d7-9cdf-93461547a8ad"
+  },
+  "cluster_endpoint": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://9A1C1313D848FDC62201DCB75EC39225.gr7.us-east-1.eks.amazonaws.com"
+  },
+  "cluster_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "ibank-eks-dev"
+  },
+  "cluster_security_group_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "sg-0412dd84db94ae8e1"
+  },
+  "db_access_instance_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "i-0dc67860a0a746d51"
+  },
+  "node_security_group_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "sg-0e1f143c23fb763ac"
+  },
+  "private_subnets": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string",
+        "string",
+        "string"
+      ]
+    ],
+    "value": [
+      "subnet-0c4da3d236032cf74",
+      "subnet-0377872d2622e02ac",
+      "subnet-0a6b71415513d6f73"
+    ]
+  },
+  "public_subnets": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string",
+        "string",
+        "string"
+      ]
+    ],
+    "value": [
+      "subnet-0f7e360d0a2f7d2c1",
+      "subnet-03f377f542d57f39e",
+      "subnet-0270185beb3d7333b"
+    ]
+  },
+  "rds_db_name": {
+    "sensitive": true,
+    "type": "string",
+    "value": "appdb"
+  },
+  "rds_endpoint": {
+    "sensitive": false,
+    "type": "string",
+    "value": "ibank-eks-dev-postgres.c9jlnhhcva7f.us-east-1.rds.amazonaws.com"
+  },
+  "rds_master_secret_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:secretsmanager:us-east-1:121897425968:secret:ibank-eks-dev/rds/postgres-HnfeI8"
+  },
+  "rds_master_secret_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "ibank-eks-dev/rds/postgres"
+  },
+  "rds_port": {
+    "sensitive": false,
+    "type": "number",
+    "value": 5432
+  },
+  "rds_security_group_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "sg-0ba4723af7fd83286"
+  },
+  "redis_secret_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:secretsmanager:us-east-1:121897425968:secret:ibank-eks-dev/redis/auth-k74NT7"
+  },
+  "vpc_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "vpc-0519939b5775715c4"
+  }
+}
